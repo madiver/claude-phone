@@ -44,6 +44,8 @@ export async function loadConfig() {
   if (!config.installationType) {
     config.installationType = 'both';
   }
+  if (!config.server) config.server = {};
+  if (!config.server.assistantCli) config.server.assistantCli = 'claude';
 
   return config;
 }
