@@ -2,7 +2,7 @@ import chalk from 'chalk';
 import ora from 'ora';
 import { spawn } from 'child_process';
 import axios from 'axios';
-import { loadConfig, configExists, getInstallationType } from '../config.js';
+import { loadConfig, configExists, getInstallationType, getConfigPath } from '../config.js';
 import { checkDocker, getContainerStatus } from '../docker.js';
 import { isServerRunning, getServerPid } from '../process-manager.js';
 import { validateElevenLabsKey, validateOpenAIKey } from '../validators.js';
@@ -333,7 +333,7 @@ async function runVoiceServerChecks(config, isPiSplit) {
       passedCount++;
     } else {
       elevenLabsSpinner.fail(chalk.red(`ElevenLabs API failed: ${elevenLabsResult.error}`));
-      console.log(chalk.gray('  → Check your API key in ~/.claude-phone/config.json\n'));
+      console.log(chalk.gray(`  → Check your API key in ${getConfigPath()}\n`));
     }
     checks.push({ name: 'ElevenLabs API', passed: elevenLabsResult.connected });
   }
@@ -347,7 +347,7 @@ async function runVoiceServerChecks(config, isPiSplit) {
       passedCount++;
     } else {
       openAISpinner.fail(chalk.red(`OpenAI API failed: ${openAIResult.error}`));
-      console.log(chalk.gray('  → Check your API key in ~/.claude-phone/config.json\n'));
+      console.log(chalk.gray(`  → Check your API key in ${getConfigPath()}\n`));
     }
     checks.push({ name: 'OpenAI API', passed: openAIResult.connected });
   }

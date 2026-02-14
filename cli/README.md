@@ -136,6 +136,12 @@ claude-phone uninstall          # Complete removal
 
 All configuration is stored in `~/.claude-phone/`:
 
+For isolated testing (without touching your real `~/.claude-phone`), set:
+
+```bash
+export CLAUDE_PHONE_CONFIG_DIR=/tmp/claude-phone-config
+```
+
 ```
 ~/.claude-phone/
 ├── config.json           # Main configuration (chmod 600)
