@@ -51,7 +51,7 @@ Select this when setting up the API server wrapper on a machine with your assist
 - API server port (default: 3333)
 
 **What `claude-phone start` does:**
-- Starts the API server on the configured port (backend defaults to Claude)
+- Starts the API server on the configured port using the configured backend (default: Claude)
 
 **Note:** You can also just run `claude-phone api-server` without setup - it defaults to port 3333.
 

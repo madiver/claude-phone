@@ -4,7 +4,7 @@
 
 # Claude Phone
 
-Voice interface for Claude Code via SIP/3CX. Call your AI, and your AI can call you.
+Voice interface for assistant backends (Claude, Codex, or ChatGPT) via SIP/3CX. Call your AI, and your AI can call you.
 
 ## What is this?
 
@@ -87,7 +87,8 @@ Best for: Mac or Linux server that's always on and has Claude Code installed.
 │  │     Single Server (Mac/Linux)                │           │
 │  │  ┌───────────┐    ┌───────────────────┐    │           │
 │  │  │ voice-app │ ←→ │ claude-api-server │    │           │
-│  │  │ (Docker)  │    │ (Claude Code CLI) │    │           │
+│  │  │ (Docker)  │    │ (Configured       │    │           │
+│  │  │           │    │  backend)         │    │           │
 │  │  └───────────┘    └───────────────────┘    │           │
 │  └─────────────────────────────────────────────┘           │
 └─────────────────────────────────────────────────────────────┘
@@ -101,7 +102,7 @@ claude-phone start    # Launches Docker + API server
 
 ### Split Mode (Pi + API Server)
 
-Best for: Dedicated Pi for voice services, Claude running on your main machine.
+Best for: Dedicated Pi for voice services, with the API server backend running on your main machine.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
