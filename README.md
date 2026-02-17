@@ -8,9 +8,9 @@ Voice interface for assistant backends (Claude, Codex, or ChatGPT) via SIP/3CX. 
 
 ## What is this?
 
-Claude Phone gives your Claude Code installation a phone number. You can:
+Claude Phone gives your assistant backend a phone number. You can:
 
-- **Inbound**: Call an extension and talk to Claude - run commands, check status, ask questions
+- **Inbound**: Call an extension and talk to your assistant - run commands, check status, ask questions
 - **Outbound**: Your server can call YOU with alerts, then have a conversation about what to do
 
 ## Prerequisites
@@ -58,7 +58,7 @@ The setup wizard asks what you're installing:
 | Type | Use Case | What It Configures |
 |------|----------|-------------------|
 | **Voice Server** | Pi or dedicated voice box | Docker containers, connects to remote API server |
-| **API Server** | Mac/Linux with Claude Code | Just the Claude API wrapper |
+| **API Server** | Mac/Linux with your chosen backend | Just the assistant API wrapper |
 | **Both** | All-in-one single machine | Everything on one box |
 
 ### 3. Start
@@ -71,7 +71,7 @@ claude-phone start
 
 ### All-in-One (Single Machine)
 
-Best for: Mac or Linux server that's always on and has Claude Code installed.
+Best for: Mac or Linux server that's always on and has your chosen assistant backend available.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
