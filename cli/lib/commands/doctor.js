@@ -82,6 +82,9 @@ async function checkCodexCLI() {
 
 async function checkAssistantCLI(backend) {
   const b = String(backend || '').trim().toLowerCase();
+  if (b === 'chatgpt') {
+    return { installed: true, version: 'api' };
+  }
   if (b === 'codex') return checkCodexCLI();
   return checkClaudeCLI();
 }
@@ -265,23 +268,43 @@ async function runApiServerChecks(config) {
 
   const backend = config.server?.assistantCli || 'claude';
 
-  // Check assistant CLI
-  const cliLabel = backend === 'codex' ? 'Codex CLI' : 'Claude CLI';
-  const cliSpinner = ora(`Checking ${cliLabel}...`).start();
-  const cliResult = await checkAssistantCLI(backend);
-  if (cliResult.installed) {
-    cliSpinner.succeed(chalk.green(`${cliLabel} installed (v${cliResult.version})`));
-    passedCount++;
-  } else {
-    cliSpinner.fail(chalk.red(`${cliLabel} not found: ${cliResult.error}`));
-    if (backend === 'codex') {
-      console.log(chalk.gray('  → Install Codex CLI: npm install -g @openai/codex'));
-      console.log(chalk.gray('    Or: brew install --cask codex\n'));
+  if (backend === 'chatgpt') {
+    const openAISpinner = ora('Checking OpenAI API key for ChatGPT backend...').start();
+    const openAIKey = process.env.OPENAI_API_KEY || config.api?.openai?.apiKey;
+    if (openAIKey) {
+      const openAIResult = await checkOpenAIAPI(openAIKey);
+      if (openAIResult.connected) {
+        openAISpinner.succeed(chalk.green('OpenAI API connected'));
+        passedCount++;
+      } else {
+        openAISpinner.fail(chalk.red(`OpenAI API failed: ${openAIResult.error}`));
+        console.log(chalk.gray(`  → Set OPENAI_API_KEY or update key in ${getConfigPath()}\n`));
+      }
+      checks.push({ name: 'OpenAI API (chatgpt backend)', passed: openAIResult.connected });
     } else {
-      console.log(chalk.gray('  → Install Claude CLI: npm install -g @anthropic-ai/claude\n'));
+      openAISpinner.fail(chalk.red('OPENAI_API_KEY not found'));
+      console.log(chalk.gray('  → Set OPENAI_API_KEY in your shell or add api.openai.apiKey to config\n'));
+      checks.push({ name: 'OpenAI API (chatgpt backend)', passed: false });
     }
+  } else {
+    // Check assistant CLI
+    const cliLabel = backend === 'codex' ? 'Codex CLI' : 'Claude CLI';
+    const cliSpinner = ora(`Checking ${cliLabel}...`).start();
+    const cliResult = await checkAssistantCLI(backend);
+    if (cliResult.installed) {
+      cliSpinner.succeed(chalk.green(`${cliLabel} installed (v${cliResult.version})`));
+      passedCount++;
+    } else {
+      cliSpinner.fail(chalk.red(`${cliLabel} not found: ${cliResult.error}`));
+      if (backend === 'codex') {
+        console.log(chalk.gray('  → Install Codex CLI: npm install -g @openai/codex'));
+        console.log(chalk.gray('    Or: brew install --cask codex\n'));
+      } else {
+        console.log(chalk.gray('  → Install Claude CLI: npm install -g @anthropic-ai/claude\n'));
+      }
+    }
+    checks.push({ name: cliLabel, passed: cliResult.installed });
   }
-  checks.push({ name: cliLabel, passed: cliResult.installed });
 
   // Check local API server
   const apiServerSpinner = ora('Checking API server...').start();

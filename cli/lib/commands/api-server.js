@@ -18,22 +18,32 @@ export async function apiServerCommand(options = {}) {
   // Load config to get port if not provided
   let port = options.port;
   let backend = options.backend;
-  if (!port && configExists()) {
-    const config = await loadConfig();
-    port = config.server?.claudeApiPort || 3333;
+  let configuredOpenAIKey = '';
+  let config = null;
+  if (configExists()) {
+    config = await loadConfig();
+    configuredOpenAIKey = config.api?.openai?.apiKey || '';
     backend = backend || config.server?.assistantCli || 'claude';
+  }
+  if (!port && config) {
+    port = config.server?.claudeApiPort || 3333;
   }
   if (!port) {
     port = 3333; // Final fallback
   }
   backend = String(backend || process.env.AI_BACKEND || 'claude').trim().toLowerCase();
-  if (!['claude', 'codex'].includes(backend)) {
-    throw new Error(`Invalid backend "${backend}". Use "claude" or "codex".`);
+  if (!['claude', 'codex', 'chatgpt'].includes(backend)) {
+    throw new Error(`Invalid backend "${backend}". Use "claude", "codex", or "chatgpt".`);
   }
 
   console.log(chalk.gray(`Starting API server on port ${port}...`));
   console.log(chalk.gray(`Backend: ${backend}`));
-  console.log(chalk.gray('This wraps your local assistant CLI for Pi connections.\n'));
+  console.log(chalk.gray('This wraps your local assistant backend for Pi connections.\n'));
+
+  if (backend === 'chatgpt' && !(process.env.OPENAI_API_KEY || configuredOpenAIKey)) {
+    console.log(chalk.yellow('⚠️  OPENAI_API_KEY not found in environment or config.'));
+    console.log(chalk.yellow('   ChatGPT backend requests will fail until an API key is provided.\n'));
+  }
 
   const projectRoot = getProjectRoot();
   const serverPath = path.join(projectRoot, 'claude-api-server', 'server.js');
@@ -45,7 +55,10 @@ export async function apiServerCommand(options = {}) {
       env: {
         ...process.env,
         PORT: port.toString(),
-        AI_BACKEND: backend
+        AI_BACKEND: backend,
+        ...(backend === 'chatgpt' && !process.env.OPENAI_API_KEY && configuredOpenAIKey
+          ? { OPENAI_API_KEY: configuredOpenAIKey }
+          : {})
       },
       stdio: 'inherit'
     });

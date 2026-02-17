@@ -22,7 +22,7 @@ const program = new Command();
 
 program
   .name('claude-phone')
-  .description('Voice interface for an assistant CLI (Claude or Codex) via SIP - Call your AI, and your AI can call you')
+  .description('Voice interface for an assistant backend (Claude, Codex, or ChatGPT) via SIP - Call your AI, and your AI can call you')
   .version('1.0.0');
 
 program
@@ -90,7 +90,7 @@ program
   .command('api-server')
   .description('Start API server for Pi remote connections')
   .option('-p, --port <port>', 'Port to listen on', '3333')
-  .option('-b, --backend <backend>', 'Backend CLI to wrap (claude|codex)')
+  .option('-b, --backend <backend>', 'Backend to use (claude|codex|chatgpt)')
   .action(async (options) => {
     try {
       const port = parseInt(options.port, 10);

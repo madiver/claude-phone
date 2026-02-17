@@ -9,6 +9,37 @@ import { isAssistantCliInstalled, sleep } from '../utils.js';
 import { checkClaudeApiServer } from '../network.js';
 import { runPrereqChecks } from '../prereqs.js';
 
+function getChatGPTApiKey(config) {
+  return process.env.OPENAI_API_KEY || config.api?.openai?.apiKey || '';
+}
+
+function getApiServerEnv(config, backend) {
+  if (backend === 'chatgpt' && !process.env.OPENAI_API_KEY && config.api?.openai?.apiKey) {
+    return { AI_BACKEND: backend, OPENAI_API_KEY: config.api.openai.apiKey };
+  }
+  return { AI_BACKEND: backend };
+}
+
+async function warnBackendDependency(config, backend) {
+  if (backend === 'chatgpt') {
+    if (!getChatGPTApiKey(config)) {
+      console.log(chalk.yellow('⚠️  OPENAI_API_KEY not found for ChatGPT backend'));
+      console.log(chalk.gray('  Set OPENAI_API_KEY in your shell, or add openai.apiKey in config\n'));
+    }
+    return;
+  }
+
+  if (!(await isAssistantCliInstalled(backend))) {
+    console.log(chalk.yellow(`⚠️  ${backend === 'codex' ? 'Codex' : 'Claude'} CLI not found`));
+    if (backend === 'codex') {
+      console.log(chalk.gray('  Install: npm install -g @openai/codex'));
+      console.log(chalk.gray('  Or: brew install --cask codex\n'));
+    } else {
+      console.log(chalk.gray('  Install from: https://claude.com/download\n'));
+    }
+  }
+}
+
 /**
  * Start command - Launch all services
  * @returns {Promise<void>}
@@ -64,16 +95,7 @@ export async function startCommand() {
 async function startApiServer(config) {
   const backend = config.server?.assistantCli || 'claude';
 
-  // Check assistant CLI
-  if (!(await isAssistantCliInstalled(backend))) {
-    console.log(chalk.yellow(`⚠️  ${backend === 'codex' ? 'Codex' : 'Claude'} CLI not found`));
-    if (backend === 'codex') {
-      console.log(chalk.gray('  Install: npm install -g @openai/codex'));
-      console.log(chalk.gray('  Or: brew install --cask codex\n'));
-    } else {
-      console.log(chalk.gray('  Install from: https://claude.com/download\n'));
-    }
-  }
+  await warnBackendDependency(config, backend);
 
   // Verify path exists
   if (!fs.existsSync(config.paths.claudeApiServer)) {
@@ -97,7 +119,12 @@ async function startApiServer(config) {
     if (await isServerRunning()) {
       spinner.warn('API server already running');
     } else {
-      await startServer(config.paths.claudeApiServer, config.server.claudeApiPort, null, { AI_BACKEND: backend });
+      await startServer(
+        config.paths.claudeApiServer,
+        config.server.claudeApiPort,
+        null,
+        getApiServerEnv(config, backend)
+      );
       spinner.succeed(`API server started on port ${config.server.claudeApiPort} (backend: ${backend})`);
     }
   } catch (error) {
@@ -246,15 +273,7 @@ async function startBoth(config, isPiMode) {
   // Check assistant CLI only in standard mode (Pi mode connects to API server instead)
   if (!isPiMode) {
     const backend = config.server?.assistantCli || 'claude';
-    if (!(await isAssistantCliInstalled(backend))) {
-      console.log(chalk.yellow(`⚠️  ${backend === 'codex' ? 'Codex' : 'Claude'} CLI not found`));
-      if (backend === 'codex') {
-        console.log(chalk.gray('  Install: npm install -g @openai/codex'));
-        console.log(chalk.gray('  Or: brew install --cask codex\n'));
-      } else {
-        console.log(chalk.gray('  Install from: https://claude.com/download\n'));
-      }
-    }
+    await warnBackendDependency(config, backend);
   }
 
   // In Pi mode, verify API server is reachable
@@ -335,7 +354,12 @@ async function startBoth(config, isPiMode) {
       if (await isServerRunning()) {
         spinner.warn('API server already running');
       } else {
-        await startServer(config.paths.claudeApiServer, config.server.claudeApiPort, null, { AI_BACKEND: backend });
+        await startServer(
+          config.paths.claudeApiServer,
+          config.server.claudeApiPort,
+          null,
+          getApiServerEnv(config, backend)
+        );
         spinner.succeed(`API server started on port ${config.server.claudeApiPort} (backend: ${backend})`);
       }
     } catch (error) {

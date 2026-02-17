@@ -273,11 +273,12 @@ async function setupApiServer(config) {
   const answers = await inquirer.prompt([{
     type: 'list',
     name: 'assistantCli',
-    message: 'Which assistant CLI should the API server wrap?',
+    message: 'Which assistant backend should the API server use?',
     default: config.server?.assistantCli || 'claude',
     choices: [
       { name: 'Claude Code CLI (requires Claude subscription)', value: 'claude' },
-      { name: 'OpenAI Codex CLI (codex)', value: 'codex' }
+      { name: 'OpenAI Codex CLI (codex)', value: 'codex' },
+      { name: 'OpenAI ChatGPT API (chatgpt)', value: 'chatgpt' }
     ]
   }, {
     type: 'input',
@@ -1061,11 +1062,12 @@ async function setupServer(config) {
     {
       type: 'list',
       name: 'assistantCli',
-      message: 'Which assistant CLI should the API server wrap?',
+      message: 'Which assistant backend should the API server use?',
       default: config.server.assistantCli || 'claude',
       choices: [
         { name: 'Claude Code CLI (requires Claude subscription)', value: 'claude' },
-        { name: 'OpenAI Codex CLI (codex)', value: 'codex' }
+        { name: 'OpenAI Codex CLI (codex)', value: 'codex' },
+        { name: 'OpenAI ChatGPT API (chatgpt)', value: 'chatgpt' }
       ]
     },
     {

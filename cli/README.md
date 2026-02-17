@@ -45,7 +45,7 @@ Select this when setting up a Raspberry Pi or dedicated voice box that connects 
 
 ### API Server
 
-Select this when setting up the API server wrapper on a machine with your assistant CLI (Claude Code or Codex).
+Select this when setting up the API server wrapper on a machine with your assistant backend (Claude Code, Codex, or ChatGPT API).
 
 **What it asks for:**
 - API server port (default: 3333)
@@ -99,6 +99,7 @@ claude-phone doctor             # Health check for dependencies and services
 claude-phone api-server         # Start API server standalone (default port 3333)
 claude-phone api-server -p 4000 # Start on custom port
 claude-phone api-server --backend codex # Wrap Codex CLI instead of Claude
+claude-phone api-server --backend chatgpt # Use OpenAI ChatGPT API directly
 ```
 
 ### Device Management
@@ -215,15 +216,19 @@ claude-phone api-server --port 4000
 
 # Or wrap Codex CLI instead of Claude
 claude-phone api-server --backend codex
+
+# Or use OpenAI ChatGPT API directly
+claude-phone api-server --backend chatgpt
 ```
 
 ## Requirements
 
 - **Node.js 18+** - Required for CLI
 - **Docker** - Required for Voice Server or Both modes
-- **Assistant CLI (choose one)** - Required for API Server or Both modes
+- **Assistant Backend (choose one)** - Required for API Server or Both modes
   - Claude Code CLI
   - OpenAI Codex CLI (`npm i -g @openai/codex` or `brew install --cask codex`)
+  - OpenAI ChatGPT API (`OPENAI_API_KEY`, no local CLI required)
 
 ## Development
 
