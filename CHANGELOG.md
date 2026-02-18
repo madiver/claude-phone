@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Codex backend support in `claude-api-server` and CLI backend selection.
 - OpenAI backend support (`openai`) in `claude-api-server` using OpenAI Responses API.
 - Optional OpenAI model override support via `OPENAI_MODEL` (default: `gpt-5-mini`).
+- OpenAI Responses web search tool support for `openai` backend with env-based controls (`OPENAI_WEB_SEARCH_*`).
 - Backend-aware setup/doctor/start handling for `claude`, `codex`, and `openai`.
 - `CLAUDE_PHONE_CONFIG_DIR` override support for isolated CLI config/testing.
 

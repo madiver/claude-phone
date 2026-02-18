@@ -184,10 +184,70 @@ console.log('[STARTUP] API keys loaded:', apiKeys.join(', '));
 // Session storage: callId -> backend session identifier
 const sessions = new Map();
 
+function parseBooleanEnv(value, defaultValue = false) {
+  if (value === undefined || value === null || String(value).trim() === '') return defaultValue;
+  const normalized = String(value).trim().toLowerCase();
+  if (['1', 'true', 'yes', 'on'].includes(normalized)) return true;
+  if (['0', 'false', 'no', 'off'].includes(normalized)) return false;
+  return defaultValue;
+}
+
+function parseCsvEnv(value) {
+  if (!value) return [];
+  return String(value)
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
 // Model selection
 const CLAUDE_MODEL = process.env.CLAUDE_MODEL || 'claude-sonnet-4-20250514';
 const CODEX_MODEL = (process.env.CODEX_MODEL || '').trim();
 const OPENAI_MODEL = (process.env.OPENAI_MODEL || process.env.CHATGPT_MODEL || 'gpt-5-mini').trim();
+const OPENAI_WEB_SEARCH_ENABLED = parseBooleanEnv(
+  process.env.OPENAI_WEB_SEARCH_ENABLED ?? process.env.OPENAI_WEB_SEARCH,
+  true
+);
+const OPENAI_WEB_SEARCH_ALLOWED_TYPES = new Set([
+  'web_search',
+  'web_search_2025_08_26',
+  'web_search_preview',
+  'web_search_preview_2025_03_11'
+]);
+const OPENAI_WEB_SEARCH_TYPE_RAW = String(process.env.OPENAI_WEB_SEARCH_TYPE || 'web_search')
+  .trim()
+  .toLowerCase();
+const OPENAI_WEB_SEARCH_TYPE = OPENAI_WEB_SEARCH_ALLOWED_TYPES.has(OPENAI_WEB_SEARCH_TYPE_RAW)
+  ? OPENAI_WEB_SEARCH_TYPE_RAW
+  : 'web_search';
+const OPENAI_WEB_SEARCH_CONTEXT_SIZE = String(process.env.OPENAI_WEB_SEARCH_CONTEXT_SIZE || '')
+  .trim()
+  .toLowerCase();
+const OPENAI_WEB_SEARCH_EXTERNAL_ACCESS = parseBooleanEnv(
+  process.env.OPENAI_WEB_SEARCH_EXTERNAL_ACCESS,
+  true
+);
+const OPENAI_WEB_SEARCH_DOMAINS = parseCsvEnv(
+  process.env.OPENAI_WEB_SEARCH_DOMAINS || process.env.OPENAI_WEB_SEARCH_ALLOWED_DOMAINS
+);
+const OPENAI_WEB_SEARCH_LOCATION = {
+  city: String(process.env.OPENAI_WEB_SEARCH_CITY || '').trim(),
+  country: String(process.env.OPENAI_WEB_SEARCH_COUNTRY || '').trim(),
+  region: String(process.env.OPENAI_WEB_SEARCH_REGION || '').trim(),
+  timezone: String(process.env.OPENAI_WEB_SEARCH_TIMEZONE || '').trim(),
+};
+
+if (BACKEND === 'openai') {
+  if (!OPENAI_WEB_SEARCH_ALLOWED_TYPES.has(OPENAI_WEB_SEARCH_TYPE_RAW)) {
+    console.warn(
+      `[STARTUP] Invalid OPENAI_WEB_SEARCH_TYPE="${OPENAI_WEB_SEARCH_TYPE_RAW}", falling back to "web_search".`
+    );
+  }
+  console.log(
+    '[STARTUP] OpenAI web search:',
+    OPENAI_WEB_SEARCH_ENABLED ? `enabled (${OPENAI_WEB_SEARCH_TYPE})` : 'disabled'
+  );
+}
 
 function parseClaudeStdout(stdout) {
   // Claude Code CLI may output JSONL; when it does, extract the `result` message.
@@ -350,6 +410,93 @@ function extractOpenAIText(data) {
   return parts.join('\n').trim();
 }
 
+function buildOpenAIWebSearchTool() {
+  if (!OPENAI_WEB_SEARCH_ENABLED) return null;
+
+  const tool = {
+    type: OPENAI_WEB_SEARCH_TYPE,
+  };
+
+  if (['low', 'medium', 'high'].includes(OPENAI_WEB_SEARCH_CONTEXT_SIZE)) {
+    tool.search_context_size = OPENAI_WEB_SEARCH_CONTEXT_SIZE;
+  }
+
+  if (OPENAI_WEB_SEARCH_TYPE.startsWith('web_search')) {
+    if (OPENAI_WEB_SEARCH_TYPE === 'web_search' && !OPENAI_WEB_SEARCH_EXTERNAL_ACCESS) {
+      tool.external_web_access = false;
+    }
+
+    // Domain filtering is currently documented for the GA web_search tool.
+    if (OPENAI_WEB_SEARCH_TYPE === 'web_search' && OPENAI_WEB_SEARCH_DOMAINS.length > 0) {
+      tool.filters = {
+        allowed_domains: OPENAI_WEB_SEARCH_DOMAINS,
+      };
+    }
+  }
+
+  const hasLocation =
+    OPENAI_WEB_SEARCH_LOCATION.city ||
+    OPENAI_WEB_SEARCH_LOCATION.country ||
+    OPENAI_WEB_SEARCH_LOCATION.region ||
+    OPENAI_WEB_SEARCH_LOCATION.timezone;
+
+  if (hasLocation) {
+    tool.user_location = {
+      type: 'approximate',
+      ...(OPENAI_WEB_SEARCH_LOCATION.city ? { city: OPENAI_WEB_SEARCH_LOCATION.city } : {}),
+      ...(OPENAI_WEB_SEARCH_LOCATION.country ? { country: OPENAI_WEB_SEARCH_LOCATION.country } : {}),
+      ...(OPENAI_WEB_SEARCH_LOCATION.region ? { region: OPENAI_WEB_SEARCH_LOCATION.region } : {}),
+      ...(OPENAI_WEB_SEARCH_LOCATION.timezone ? { timezone: OPENAI_WEB_SEARCH_LOCATION.timezone } : {}),
+    };
+  }
+
+  return tool;
+}
+
+function shouldRetryWithoutWebSearch(errorMessage) {
+  const msg = String(errorMessage || '').toLowerCase();
+  if (!msg) return false;
+  const mentionsWebSearch = msg.includes('web_search') || msg.includes('tools[0].type');
+  const looksUnsupported =
+    msg.includes('unsupported') ||
+    msg.includes('not supported') ||
+    msg.includes('unknown') ||
+    msg.includes('invalid');
+  return mentionsWebSearch && looksUnsupported;
+}
+
+async function callOpenAIResponses(apiKey, payload) {
+  const response = await fetch('https://api.openai.com/v1/responses', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(payload)
+  });
+
+  const rawBody = await response.text();
+
+  let data = null;
+  try {
+    data = JSON.parse(rawBody);
+  } catch {
+    // Leave as null; caller can fall back to raw text.
+  }
+
+  if (!response.ok) {
+    return {
+      ok: false,
+      status: response.status,
+      rawBody,
+      data,
+      errorMessage: data?.error?.message || rawBody || `OpenAI API HTTP ${response.status}`
+    };
+  }
+
+  return { ok: true, status: response.status, rawBody, data };
+}
+
 async function runOpenAIOnce({ fullPrompt, callId, timestamp }) {
   const startTime = Date.now();
   const apiKey = String(process.env.OPENAI_API_KEY || '').trim();
@@ -369,6 +516,10 @@ async function runOpenAIOnce({ fullPrompt, callId, timestamp }) {
     model: OPENAI_MODEL,
     input: fullPrompt
   };
+  const webSearchTool = buildOpenAIWebSearchTool();
+  if (webSearchTool) {
+    payload.tools = [webSearchTool];
+  }
 
   if (callId && sessions.has(callId)) {
     payload.previous_response_id = sessions.get(callId);
@@ -376,47 +527,39 @@ async function runOpenAIOnce({ fullPrompt, callId, timestamp }) {
   }
 
   try {
-    const response = await fetch('https://api.openai.com/v1/responses', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(payload)
-    });
+    let apiResult = await callOpenAIResponses(apiKey, payload);
 
-    const rawBody = await response.text();
-    const duration_ms = Date.now() - startTime;
-
-    let data = null;
-    try {
-      data = JSON.parse(rawBody);
-    } catch {
-      // Leave as null; we'll fall back to raw text.
+    if (!apiResult.ok && webSearchTool && shouldRetryWithoutWebSearch(apiResult.errorMessage)) {
+      console.warn(
+        `[${timestamp}] OpenAI web search tool rejected (${apiResult.errorMessage}). Retrying without web search.`
+      );
+      const fallbackPayload = { ...payload };
+      delete fallbackPayload.tools;
+      apiResult = await callOpenAIResponses(apiKey, fallbackPayload);
     }
 
-    if (!response.ok) {
-      const errorMessage = data?.error?.message || rawBody || `OpenAI API HTTP ${response.status}`;
+    const duration_ms = Date.now() - startTime;
+    if (!apiResult.ok) {
       return {
-        code: response.status || 1,
-        stdout: rawBody,
-        stderr: errorMessage,
+        code: apiResult.status || 1,
+        stdout: apiResult.rawBody,
+        stderr: apiResult.errorMessage,
         duration_ms,
         response: '',
         sessionId: null
       };
     }
 
-    const parsedText = extractOpenAIText(data);
-    const responseText = parsedText || String(rawBody || '').trim();
+    const parsedText = extractOpenAIText(apiResult.data);
+    const responseText = parsedText || String(apiResult.rawBody || '').trim();
 
     return {
       code: 0,
-      stdout: rawBody,
+      stdout: apiResult.rawBody,
       stderr: '',
       duration_ms,
       response: responseText,
-      sessionId: data?.id || null
+      sessionId: apiResult.data?.id || null
     };
   } catch (error) {
     return {
@@ -531,6 +674,13 @@ app.post('/ask', async (req, res) => {
   if (BACKEND === 'claude') console.log(`[${timestamp}] MODEL: ${CLAUDE_MODEL}`);
   if (BACKEND === 'codex') console.log(`[${timestamp}] MODEL: ${CODEX_MODEL || 'codex-default'}`);
   if (BACKEND === 'openai') console.log(`[${timestamp}] MODEL: ${OPENAI_MODEL}`);
+  if (BACKEND === 'openai') {
+    console.log(
+      `[${timestamp}] WEB_SEARCH: ${
+        OPENAI_WEB_SEARCH_ENABLED ? `enabled (${OPENAI_WEB_SEARCH_TYPE})` : 'disabled'
+      }`
+    );
+  }
   console.log(`[${timestamp}] SESSION: callId=${callId || 'none'}, existing=${existingSession || 'none'}`);
   console.log(`[${timestamp}] DEVICE PROMPT: ${devicePrompt ? 'Yes (' + devicePrompt.substring(0, 30) + '...)' : 'No'}`);
 
@@ -644,6 +794,13 @@ app.post('/ask-structured', async (req, res) => {
   if (BACKEND === 'claude') console.log(`[${timestamp}] MODEL: ${CLAUDE_MODEL}`);
   if (BACKEND === 'codex') console.log(`[${timestamp}] MODEL: ${CODEX_MODEL || 'codex-default'}`);
   if (BACKEND === 'openai') console.log(`[${timestamp}] MODEL: ${OPENAI_MODEL}`);
+  if (BACKEND === 'openai') {
+    console.log(
+      `[${timestamp}] WEB_SEARCH: ${
+        OPENAI_WEB_SEARCH_ENABLED ? `enabled (${OPENAI_WEB_SEARCH_TYPE})` : 'disabled'
+      }`
+    );
+  }
   console.log(`[${timestamp}] SESSION: callId=${callId || 'none'}, existing=${callId ? (sessions.has(callId) ? 'yes' : 'no') : 'none'}`);
 
   try {
@@ -753,6 +910,13 @@ app.get('/health', (req, res) => {
     status: 'ok',
     service: 'claude-api-server',
     backend: BACKEND,
+    openai: BACKEND === 'openai'
+      ? {
+        model: OPENAI_MODEL,
+        webSearchEnabled: OPENAI_WEB_SEARCH_ENABLED,
+        webSearchType: OPENAI_WEB_SEARCH_TYPE
+      }
+      : undefined,
     timestamp: new Date().toISOString()
   });
 });

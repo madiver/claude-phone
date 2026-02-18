@@ -45,6 +45,12 @@ export async function apiServerCommand(options = {}) {
     console.log(chalk.yellow('⚠️  OPENAI_API_KEY not found in environment or config.'));
     console.log(chalk.yellow('   OpenAI backend requests will fail until an API key is provided.\n'));
   }
+  if (backend === 'openai') {
+    const webSearchEnabled = String(
+      process.env.OPENAI_WEB_SEARCH_ENABLED ?? process.env.OPENAI_WEB_SEARCH ?? 'true'
+    ).trim();
+    console.log(chalk.gray(`OpenAI web search: ${webSearchEnabled} (set OPENAI_WEB_SEARCH_ENABLED to override)\n`));
+  }
 
   const projectRoot = getProjectRoot();
   const serverPath = path.join(projectRoot, 'claude-api-server', 'server.js');

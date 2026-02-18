@@ -235,6 +235,15 @@ See `.env.example` for all variables. Key ones:
 | `OPENAI_API_KEY` | Whisper STT key and OpenAI backend key |
 | `AI_BACKEND` | Backend selector (`claude`, `codex`, or `openai`) |
 | `OPENAI_MODEL` | Optional OpenAI model override (default: `gpt-5-mini`) |
+| `OPENAI_WEB_SEARCH_ENABLED` | Enable OpenAI Responses web search tool (default: `true` for `openai` backend) |
+| `OPENAI_WEB_SEARCH_TYPE` | Web search tool type (default: `web_search`) |
+| `OPENAI_WEB_SEARCH_CONTEXT_SIZE` | Web search context budget (`low`, `medium`, `high`) |
+| `OPENAI_WEB_SEARCH_DOMAINS` | Optional comma-separated allowed domains (GA `web_search` tool) |
+| `OPENAI_WEB_SEARCH_EXTERNAL_ACCESS` | For GA `web_search`: live web access toggle (`true`/`false`) |
+| `OPENAI_WEB_SEARCH_CITY` | Optional city hint for approximate user location |
+| `OPENAI_WEB_SEARCH_COUNTRY` | Optional 2-letter country code for approximate user location |
+| `OPENAI_WEB_SEARCH_REGION` | Optional region/state hint for approximate user location |
+| `OPENAI_WEB_SEARCH_TIMEZONE` | Optional IANA timezone for approximate user location |
 | `SIP_DOMAIN` | 3CX server FQDN |
 | `SIP_REGISTRAR` | SIP registrar address |
 

@@ -219,7 +219,15 @@ claude-phone api-server --backend codex
 
 # Or use OpenAI Responses API directly
 claude-phone api-server --backend openai
+
+# Optional OpenAI web search tuning (enabled by default for backend=openai)
+export OPENAI_WEB_SEARCH_ENABLED=true
+export OPENAI_WEB_SEARCH_TYPE=web_search
+export OPENAI_WEB_SEARCH_CONTEXT_SIZE=medium
+export OPENAI_WEB_SEARCH_DOMAINS=openai.com,docs.docker.com
 ```
+
+Web search can improve freshness for real-time questions, but may increase latency and tool-call cost.
 
 ## Requirements
 
@@ -228,7 +236,7 @@ claude-phone api-server --backend openai
 - **Assistant Backend (choose one)** - Required for API Server or Both modes
   - Claude Code CLI
   - OpenAI Codex CLI (`npm i -g @openai/codex` or `brew install --cask codex`)
-  - OpenAI Responses API (`OPENAI_API_KEY`, no local CLI required)
+  - OpenAI Responses API (`OPENAI_API_KEY`, no local CLI required; web search supported via `OPENAI_WEB_SEARCH_*` env vars)
 
 ## Development
 

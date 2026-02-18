@@ -265,6 +265,18 @@ claude-phone config show | grep claudeApiUrl
    # backend=openai  -> OPENAI_API_KEY must be set
    ```
 
+3. **OpenAI backend has no web results:**
+   ```bash
+   # Check OpenAI backend + web search config:
+   curl http://localhost:3333/health
+   # Look for: backend=openai, openai.webSearchEnabled=true
+
+   # Explicitly enable if needed:
+   export OPENAI_WEB_SEARCH_ENABLED=true
+   export OPENAI_WEB_SEARCH_TYPE=web_search
+   claude-phone api-server --backend openai
+   ```
+
 3. Check for Node.js errors in output
 
 ## Getting Logs

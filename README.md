@@ -136,6 +136,20 @@ claude-phone api-server --backend codex # Wrap Codex CLI instead
 claude-phone api-server --backend openai # Use OpenAI Responses API directly
 ```
 
+### OpenAI Web Search
+
+When using `--backend openai`, the Responses API web search tool is enabled by default.
+This can improve freshness for real-time questions, but may increase latency and tool-call cost.
+
+```bash
+# Optional tuning when running API server with OpenAI backend
+export OPENAI_WEB_SEARCH_ENABLED=true
+export OPENAI_WEB_SEARCH_TYPE=web_search
+export OPENAI_WEB_SEARCH_CONTEXT_SIZE=medium
+export OPENAI_WEB_SEARCH_DOMAINS=openai.com,docs.docker.com
+claude-phone api-server --backend openai
+```
+
 Note: On the API server machine, you don't need to run `claude-phone setup` first - the `api-server` command works standalone.
 
 ## CLI Commands
