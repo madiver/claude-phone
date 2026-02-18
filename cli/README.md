@@ -225,6 +225,9 @@ export OPENAI_WEB_SEARCH_ENABLED=true
 export OPENAI_WEB_SEARCH_TYPE=web_search
 export OPENAI_WEB_SEARCH_CONTEXT_SIZE=medium
 export OPENAI_WEB_SEARCH_DOMAINS=openai.com,docs.docker.com
+
+# Verify backend + web-search state
+curl http://localhost:3333/health
 ```
 
 Web search can improve freshness for real-time questions, but may increase latency and tool-call cost.

@@ -148,6 +148,10 @@ export OPENAI_WEB_SEARCH_TYPE=web_search
 export OPENAI_WEB_SEARCH_CONTEXT_SIZE=medium
 export OPENAI_WEB_SEARCH_DOMAINS=openai.com,docs.docker.com
 claude-phone api-server --backend openai
+
+# Verify active backend + web-search state
+curl http://localhost:3333/health
+# Expect backend=openai and openai.webSearchEnabled=true
 ```
 
 Note: On the API server machine, you don't need to run `claude-phone setup` first - the `api-server` command works standalone.

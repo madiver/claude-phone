@@ -73,6 +73,24 @@ sudo usermod -aG docker pi
 # Reboot the Pi
 ```
 
+### "claude-phone: command not found"
+
+**Symptom:** Your shell cannot find the `claude-phone` command.
+
+**Solutions:**
+1. Run from the repo directly:
+   ```bash
+   node cli/bin/claude-phone.js --version
+   node cli/bin/claude-phone.js start
+   ```
+2. Re-install the global CLI link:
+   ```bash
+   cd /path/to/claude-phone/cli
+   npm link
+   hash -r
+   ```
+3. Open a new terminal and retry `claude-phone --version`.
+
 ## Connection Issues
 
 ### Calls don't connect at all
@@ -277,7 +295,7 @@ claude-phone config show | grep claudeApiUrl
    claude-phone api-server --backend openai
    ```
 
-3. Check for Node.js errors in output
+4. Check for Node.js errors in output
 
 ## Getting Logs
 

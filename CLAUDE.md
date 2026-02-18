@@ -213,6 +213,8 @@ npm run lint:fix      # Auto-fix issues
 | POST | `/end-session` | Clean up session |
 | GET | `/health` | Health check |
 
+For `AI_BACKEND=openai`, `/health` includes `openai.model`, `openai.webSearchEnabled`, and `openai.webSearchType`.
+
 ## Key Design Decisions
 
 1. **CommonJS for voice-app** - Compatibility with drachtio ecosystem
